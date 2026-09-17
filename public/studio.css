@@ -123,14 +123,14 @@ body[data-area] .hero .light-button:hover{background:var(--soft)}
  .dock-divider{display:none}
 }
 /* Keep the team heading, carousel and progress within one screen. */
-#equipa.team-carousel{height:min(820px,100svh);display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;row-gap:16px;padding:32px 0 calc(96px + env(safe-area-inset-bottom))}
+#equipa.team-carousel{height:min(780px,100svh);display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;row-gap:16px;padding:32px 0 calc(96px + env(safe-area-inset-bottom))}
 #equipa .center-heading{margin-bottom:4px}
 #equipa .team-toolbar{margin-bottom:0}
 #equipa .team-track{min-height:0;height:100%;padding-bottom:0}
 #equipa .team-portrait{height:100%;aspect-ratio:auto}
 #equipa .team-progress{margin-top:0}
 @media(max-width:640px){
- #equipa.team-carousel{height:min(700px,100svh);padding-top:24px;row-gap:12px}
+ #equipa.team-carousel{height:min(660px,100svh);padding-top:24px;row-gap:12px}
  #equipa .portrait-info{bottom:20px}
 }
 footer.footer-copyright{margin-top:0;padding:16px 4.7% calc(16px + env(safe-area-inset-bottom));text-align:center;font-size:13px;line-height:1.5}
@@ -315,7 +315,7 @@ footer.footer-copyright{margin-top:0;padding:16px 4.7% calc(16px + env(safe-area
 #equipa .portrait-role{color:#444}
 #equipa .team-portrait .asset-label{color:#444}
 #equipa .team-portrait .asset-label>span{color:#555}
-.portrait-areas{position:absolute;right:20px;bottom:20px;display:flex;align-items:center;gap:8px;min-height:32px}
+.portrait-areas{position:absolute;right:20px;bottom:30px;display:flex;align-items:center;gap:8px;min-height:32px}
 .portrait-areas .brand-logo{width:64px}
 .portrait-areas .brand-logo[data-logo=dance]{width:30px}
 
