@@ -19,7 +19,7 @@ COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/public ./public
 COPY --from=builder --chown=node:node /app/db/migrations ./db/migrations
 COPY --from=builder --chown=node:node /app/lib/local-db.mjs /app/lib/local-auth.mjs ./lib/
-COPY --from=builder --chown=node:node /app/scripts/admin-account.mjs /app/scripts/start-production.mjs ./scripts/
+COPY --from=builder --chown=node:node /app/scripts/admin-account.mjs /app/scripts/start-production.mjs /app/scripts/transfer-content.mjs ./scripts/
 USER node
 EXPOSE 3000
 CMD ["node", "scripts/start-production.mjs"]
