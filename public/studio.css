@@ -153,6 +153,11 @@ footer.footer-copyright{margin-top:0;padding:16px 4.7% calc(16px + env(safe-area
  .series-visual{min-height:0;aspect-ratio:1.8}
 }
 .hero-schedule{max-width:560px;display:grid;gap:14px;margin:24px 0;color:var(--ink)}
+.hero-schedule-area{display:grid;gap:12px;border-top:1px solid var(--schedule-accent);padding-top:12px;color:var(--schedule-ink)}
+.hero-schedule-area[data-schedule-area=fitness]{--schedule-accent:#88c501;--schedule-ink:#395600}
+.hero-schedule-area[data-schedule-area=dance]{--schedule-accent:#459bd0;--schedule-ink:#205f85}
+.hero-schedule-area h2{font-size:14px;font-weight:700;line-height:1.3;letter-spacing:0}
+.hero-schedule-area+.hero-schedule-area{margin-top:8px}
 .hero-session{display:grid;grid-template-columns:100px minmax(0,1fr);gap:12px;align-items:start}
 .hero-session-label{padding-top:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
 .hero-session-content{display:grid;gap:8px;font-size:13px;line-height:1.4}

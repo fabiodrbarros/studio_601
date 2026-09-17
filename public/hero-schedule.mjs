@@ -1,3 +1,10 @@
+// The overview keeps each area's next class, even when another area starts sooner.
+export function getHeroScheduleGroups(catalog, area, now = new Date()) {
+ return (area === 'all' ? ['fitness', 'dance'] : [area])
+  .map(area => ({ area, ...getHeroSchedule(catalog, area, now) }))
+  .filter(state => state.hasSchedule);
+}
+
 // Calendar comparisons use the published wall-clock times in Portugal.
 export function getHeroSchedule(catalog, area, now = new Date()) {
  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {

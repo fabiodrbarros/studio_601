@@ -22,14 +22,21 @@ const heroSchedule=document.createElement('div');
 heroSchedule.className='hero-schedule';heroSchedule.hidden=true;
 heroSchedule.setAttribute('role','status');heroSchedule.setAttribute('aria-live','polite');
 $('.hero .copy-placeholder').replaceWith(heroSchedule);
-import('/hero-schedule.mjs').then(module=>{heroScheduleCalculator=module.getHeroSchedule;renderHeroSchedule()}).catch(()=>{heroSchedule.hidden=true});
+import('/hero-schedule.mjs').then(module=>{heroScheduleCalculator=module.getHeroScheduleGroups;renderHeroSchedule()}).catch(()=>{heroSchedule.hidden=true});
 function renderHeroSchedule(){
  if(!heroScheduleCalculator||loading||failed||area==='wellness'){heroSchedule.hidden=true;heroScheduleSignature='';return;}
- const state=heroScheduleCalculator(catalog,area);
- if(!state.hasSchedule){heroSchedule.hidden=true;heroScheduleSignature='';return;}
- const signature=JSON.stringify([area,state.today,state.current,state.next]);
+ const groups=heroScheduleCalculator(catalog,area);
+ if(!groups.length){heroSchedule.hidden=true;heroScheduleSignature='';return;}
+ const signature=JSON.stringify([area,groups]);
  if(signature===heroScheduleSignature)return;
  heroScheduleSignature=signature;heroSchedule.replaceChildren();heroSchedule.hidden=false;
+ for(const state of groups){
+ let target=heroSchedule;
+ if(area==='all'){
+  target=document.createElement('section');target.className='hero-schedule-area';target.dataset.scheduleArea=state.area;
+  const heading=document.createElement('h2');heading.id='hero-schedule-'+state.area;heading.textContent=state.area.toUpperCase();
+  target.setAttribute('aria-labelledby',heading.id);target.append(heading);heroSchedule.append(target);
+ }
  const dateLabel=date=>{
   if(date===state.today)return 'Hoje';
   const tomorrow=new Date(state.today+'T12:00:00Z');tomorrow.setUTCDate(tomorrow.getUTCDate()+1);
@@ -43,14 +50,16 @@ function renderHeroSchedule(){
   for(const {session,modality,date} of items){
    const entry=document.createElement('div'),name=document.createElement('strong'),time=document.createElement('span');
    name.textContent=modality.name;
-   time.textContent=[area==='all'?modality.area.toUpperCase():'',isCurrent?'':dateLabel(date),session.duration==null?session.time:session.time+'–'+endTime(session)].filter(Boolean).join(' · ');
+   time.textContent=[isCurrent?'':dateLabel(date),session.duration==null?session.time:session.time+'–'+endTime(session)].filter(Boolean).join(' · ');
    entry.append(name,time);content.append(entry);
   }
   if(!items.length){const message=document.createElement('span');message.textContent='Sem próximas aulas publicadas.';content.append(message);}
-  row.append(tag,content);heroSchedule.append(row);
+  row.append(tag,content);target.append(row);
  };
  if(state.current.length)addRow('A decorrer',state.current,true);
- addRow(state.next.length>1?'Próximas aulas':'Próxima aula',state.next,false);siteMotion?.heroChanged();
+ addRow(state.next.length>1?'Próximas aulas':'Próxima aula',state.next,false);
+ }
+ siteMotion?.heroChanged();
 }
 setInterval(()=>{if(!document.hidden)renderHeroSchedule()},15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)renderHeroSchedule()});
