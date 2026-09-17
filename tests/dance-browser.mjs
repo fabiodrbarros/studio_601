@@ -1,0 +1,63 @@
+import { createRequire } from 'node:module';
+import { randomBytes,randomUUID } from 'node:crypto';
+import { mkdtempSync,rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join,resolve,sep } from 'node:path';
+import { spawn } from 'node:child_process';
+import assert from 'node:assert/strict';
+import { setTimeout as delay } from 'node:timers/promises';
+import { importDance,weekly } from '../lib/dance-import.mjs';
+import { importFitness } from '../lib/fitness-import.mjs';
+import { empty } from '../lib/catalog.ts';
+
+const {chromium}=createRequire(import.meta.url)(process.env.STUDIO_PLAYWRIGHT_PATH||'playwright');
+const directory=mkdtempSync(join(tmpdir(),'studio601-dance-'));
+process.env.STUDIO_DB_PATH=join(directory,'test.sqlite');
+const {database,writeStoredCatalog}=await import('../lib/local-db.mjs');
+const {setAdministrator}=await import('../lib/local-auth.mjs');
+const password=randomBytes(24).toString('base64url');await setAdministrator('teste-dance',password);
+const previous=importFitness(empty).data;
+previous.modalities.push({id:randomUUID(),name:'Wellness preservado',area:'wellness',kind:'service',mode:'appointment',description:'',published:true});
+const {data}=importDance(previous);writeStoredCatalog(0,JSON.stringify(data));
+const origin='http://127.0.0.1:30603';
+const server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port','30603'],{env:{...process.env,APP_ORIGIN:origin},stdio:'ignore'});
+let browser;
+try{
+ for(let i=0;i<120;i++){try{if((await fetch(origin+'/api/catalog')).ok)break;}catch{}await delay(250);}
+ browser=await chromium.launch({channel:'msedge',headless:true});
+ const page=await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:'reduce',timezoneId:'America/Los_Angeles'});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(origin);await page.waitForFunction(()=>document.querySelectorAll('.team-portrait').length===5);
+ assert.equal(await page.locator('#horarios').isVisible(),false);
+ await page.locator('[data-select="dance"]').click();
+ await page.waitForFunction(()=>document.querySelectorAll('.timetable-event').length===19);
+ assert.equal(await page.locator('.series-card').count(),18);assert.equal(await page.locator('.team-portrait').count(),5);
+ const headings=await page.locator('.timetable thead th').allTextContents();assert.equal(headings.length,5);assert(!headings.some(t=>/quarta|domingo/.test(t)));
+ assert.equal(await page.locator('#timetable-body>tr').count(),1);
+ await page.setViewportSize({width:1440,height:768});assert(await page.locator('#horarios').evaluate(el=>el.getBoundingClientRect().height)<=768);await page.setViewportSize({width:1440,height:1000});
+ const text=await page.locator('#timetable-body').textContent();assert(!/0 min|null|undefined|Não indicada|\d\d:\d\d–\d\d:\d\d/.test(text));
+ assert.equal(await page.locator('.timetable-event').filter({has:page.locator('strong',{hasText:/^Coaching$/})}).count(),2);
+ const mtv=page.locator('.timetable-event').filter({has:page.locator('strong',{hasText:/^MTV Dance$/})});await mtv.click();
+ assert.match(await page.locator('#detail>p').textContent(),/4–6 anos/);await page.getByRole('button',{name:'Fechar detalhe'}).click();
+ for(let i=0;i<8;i++)await page.locator('#week-next').click();assert.match(await mtv.textContent(),/17:10/);assert.equal(await page.locator('.timetable-event').count(),19);
+ await page.locator('[data-select="fitness"]').click();assert.equal(await page.locator('.timetable-event').count(),26);assert.match(await page.locator('.timetable-event').filter({hasText:'Pilates'}).textContent(),/18:00–18:50/);
+ await page.locator('[data-select="wellness"]').click();assert.equal(await page.locator('.series-card').count(),1);assert.equal(await page.locator('.timetable-wrap').isVisible(),false);
+ await page.goto(origin+'/admin');await page.getByLabel('Utilizador',{exact:true}).fill('teste-dance');await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Entrar',exact:true}).click();await page.getByRole('heading',{name:'Administração'}).waitFor();
+ await page.getByRole('button',{name:'DANCE',exact:true}).click();await page.getByRole('tab',{name:'Turmas e sessões'}).click();
+ const row=page.locator('[data-schedule-modality]').filter({has:page.getByRole('heading',{name:'MTV Dance',exact:true})});await row.getByRole('button',{name:'Editar',exact:true}).click();
+ const dialog=page.getByRole('dialog');assert.equal(await dialog.getByLabel('Duração (minutos)',{exact:true}).inputValue(),'');assert.equal(await dialog.getByLabel('Idade mínima (opcional)').inputValue(),'4');assert.equal(await dialog.getByLabel('Idade máxima (opcional)').inputValue(),'6');
+ await dialog.getByLabel('Hora de início').fill('17:15');await dialog.getByLabel('Idade máxima (opcional)').fill('7');await dialog.getByLabel('Condição de acesso / nível (opcional)').fill('Nota de teste');await dialog.getByRole('button',{name:'Guardar',exact:true}).click();await dialog.waitFor({state:'hidden'});
+ await page.getByRole('button',{name:'EQUIPA',exact:true}).click();await page.locator('.divide-y>div').filter({hasText:'Isabel'}).getByRole('button',{name:'Editar',exact:true}).click();assert.equal(await dialog.getByLabel('Função / especialidade (opcional)',{exact:true}).inputValue(),'');await dialog.getByRole('button',{name:'Guardar',exact:true}).click();await dialog.waitFor({state:'hidden'});
+ await page.goto(origin);await page.locator('[data-select="dance"]').click();await page.waitForFunction(()=>document.querySelector('#timetable-body').textContent.includes('17:15'));
+ assert.match(await mtv.getAttribute('aria-label'),/4–7 anos/);await mtv.click();assert.match(await page.locator('#detail>p').textContent(),/4–7 anos/);assert.match(await page.locator('#detail>p').textContent(),/Nota de teste/);await page.getByRole('button',{name:'Fechar detalhe'}).click();
+ const saved=(await(await fetch(origin+'/api/catalog')).json()).data;
+ assert.deepEqual(saved.sessions.filter(s=>previous.sessions.some(old=>old.id===s.id)),previous.sessions);
+ assert.deepEqual(saved.modalities.filter(m=>m.area!=='dance'),previous.modalities);
+ const repeated=importDance(saved);assert.deepEqual(repeated.data,saved);assert.equal(repeated.report.newSessions,0);assert(repeated.report.conflicts.some(c=>c.includes('MTV Dance')));
+ await page.setViewportSize({width:390,height:844});assert.equal(await page.locator('.timetable-event').count(),19);assert(await page.locator('#horarios').evaluate(el=>el.getBoundingClientRect().height)<=844);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
+ assert.equal(weekly.length,19);
+ console.log('Dance: 18 modalidades/5 profissionais/19 sessões, idades e detalhes, Coaching duplo, duração desconhecida, inverno, edição admin→site, preservação Fitness/Wellness e mobile sem erros.');
+}finally{
+ if(browser)await browser.close();const stopped=new Promise(r=>server.once('exit',r));server.kill();await stopped;database().close();
+ assert(resolve(directory).startsWith(resolve(tmpdir())+sep)&&directory.includes('studio601-dance-'));rmSync(directory,{recursive:true,force:true});
+}

@@ -1,0 +1,56 @@
+.page {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  color: #252525;
+  font-family: 'Manrope', Arial, sans-serif;
+  padding: 48px 7.2% 0;
+}
+
+.layout {
+  width: 100%;
+  max-width: 1200px;
+  margin: auto;
+  padding: 40px 0;
+  display: grid;
+  grid-template-columns: 1.15fr .85fr;
+  align-items: center;
+  gap: 8%;
+}
+
+.brand { display: block; width: 100%; border-radius: 12px; }
+.logo { display: block; position: relative; overflow: hidden; width: min(100%, 540px); aspect-ratio: 1119 / 896; }
+.logo img { position: absolute; max-width: none; width: 112.0643%; height: 139.9554%; left: -6.0769%; top: -17.5223%; }
+.content { width: 100%; max-width: 400px; }
+.content h1 { margin: 0; font-size: clamp(2rem, 3.4vw, 3rem); font-weight: 400; letter-spacing: -.035em; line-height: 1.1; }
+.form { display: flex; flex-direction: column; gap: 22px; margin-top: 32px; }
+.field { display: flex; flex-direction: column; gap: 9px; }
+.field label { font-size: 11px; font-weight: 500; letter-spacing: .13em; text-transform: uppercase; }
+.field input { width: 100%; min-height: 52px; background: #f5f5f5; border: 1px solid #ccc; border-radius: 8px; padding: 12px 14px; font: inherit; font-size: 16px; color: #252525; caret-color: #252525; transition: border-color .2s, background .2s; }
+.field input:hover { border-color: #888; }
+.field input:focus { background: #fff; }
+.submit { width: 100%; min-height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 5px; background: #252525; color: #fff; border: 0; border-radius: 9px; cursor: pointer; font: inherit; transition: background .2s; }
+.submit > span:first-child { padding: 0 21px; font-size: 14px; }
+.arrow { display: grid; place-items: center; background: #e7e7e7; color: #252525; width: 48px; height: 48px; border-radius: 6px; }
+.arrow svg { width: 24px; height: 24px; }
+.submit:hover:not(:disabled) { background: #444; }
+.submit:disabled { opacity: .65; cursor: wait; }
+.error { margin: 0; color: #a12222; font-size: 14px; line-height: 1.5; }
+.back { display: inline-flex; align-items: center; min-height: 44px; margin-top: 20px; font-size: 13px; color: #626262; text-decoration: underline; text-underline-offset: 4px; }
+.back:hover { color: #252525; }
+.page :is(a, button, input):focus-visible { outline: 2px solid #252525; outline-offset: 4px; }
+.page ::selection { background: #252525; color: #fff; }
+.footer { padding: 16px 0; font-size: 11px; text-align: center; color: #626262; }
+
+@media (max-width: 700px) {
+  .page { padding: 24px 7.2% 0; }
+  .layout { grid-template-columns: 1fr; gap: 32px; max-width: 400px; padding: 16px 0 32px; }
+  .brand { width: min(100%, 240px); }
+  .logo { width: 100%; }
+  .form { gap: 18px; margin-top: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field input, .submit { transition: none; }
+}

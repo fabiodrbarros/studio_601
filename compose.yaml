@@ -1,0 +1,36 @@
+name: studio601
+services:
+  website:
+    image: studio601:${IMAGE_TAG:-local}
+    build:
+      context: .
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      NODE_ENV: production
+      APP_ORIGIN: ${APP_ORIGIN:?Define APP_ORIGIN no ficheiro .env}
+      STUDIO_DB_PATH: /data/studio601.sqlite
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-30601}:3000"
+    volumes:
+      - studio601-data:/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health',{signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+volumes:
+  studio601-data:

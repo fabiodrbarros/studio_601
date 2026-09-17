@@ -1,0 +1,50 @@
+import { createRequire } from 'node:module';
+import { randomBytes } from 'node:crypto';
+import { mkdtempSync,rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join,resolve,sep } from 'node:path';
+import { spawn } from 'node:child_process';
+import assert from 'node:assert/strict';
+import { setTimeout as delay } from 'node:timers/promises';
+import { importWellness,names } from '../lib/wellness-import.mjs';
+import { importDance } from '../lib/dance-import.mjs';
+import { importFitness } from '../lib/fitness-import.mjs';
+import { empty } from '../lib/catalog.ts';
+const {chromium}=createRequire(import.meta.url)(process.env.STUDIO_PLAYWRIGHT_PATH||'playwright');
+const directory=mkdtempSync(join(tmpdir(),'studio601-wellness-'));
+process.env.STUDIO_DB_PATH=join(directory,'test.sqlite');
+const {database,writeStoredCatalog}=await import('../lib/local-db.mjs');
+const {setAdministrator}=await import('../lib/local-auth.mjs');
+const password=randomBytes(24).toString('base64url');await setAdministrator('teste-wellness',password);
+const previous=importDance(importFitness(empty).data).data;
+previous.professionals.find(p=>p.name==='Amanda').areas.push('wellness');
+previous.contact.phone='+351 938 388 449';
+const {data}=importWellness(previous);writeStoredCatalog(0,JSON.stringify(data));
+const origin='http://127.0.0.1:30604';
+const server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port','30604'],{env:{...process.env,APP_ORIGIN:origin},stdio:'ignore'});
+let browser;
+try{
+ for(let i=0;i<120;i++){try{if((await fetch(origin+'/api/catalog')).ok)break;}catch{}await delay(250);}
+ browser=await chromium.launch({channel:'msedge',headless:true});const page=await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(origin);await page.locator('[data-select="wellness"]').click();
+ await page.waitForFunction(()=>document.querySelectorAll('.series-card').length===7);
+ assert.deepEqual(await page.locator('.series-title').allTextContents(),names);
+ assert.equal(await page.locator('.series-card .series-detail').count(),0);
+ assert.equal(await page.locator('#horarios').isVisible(),false);
+ assert.equal(await page.locator('.dock a[href="#horarios"]').isVisible(),false);assert(!/null|undefined|Conhece esta modalidade/.test(await page.locator('#series-stack').textContent()));
+ assert.equal(await page.locator('#series-stack').getByText('Sob marcação',{exact:true}).count(),7);
+ await page.goto(origin+'/admin');await page.getByLabel('Utilizador',{exact:true}).fill('teste-wellness');await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Entrar',exact:true}).click();await page.getByRole('heading',{name:'Administração'}).waitFor();await page.getByRole('button',{name:'WELLNESS',exact:true}).click();
+ await page.locator('.divide-y>div').filter({hasText:'Pilates de Aparelhos'}).getByRole('button',{name:'Editar',exact:true}).click();
+ const dialog=page.getByRole('dialog');assert.equal(await dialog.getByLabel('Descrição',{exact:true}).inputValue(),'');await dialog.getByLabel('Descrição',{exact:true}).fill('Descrição de teste');await dialog.getByLabel('Ordem de apresentação (opcional)').fill('8');await dialog.getByRole('checkbox',{name:'Amanda',exact:true}).check();await dialog.getByRole('button',{name:'Guardar',exact:true}).click();await dialog.waitFor({state:'hidden'});
+ await page.goto(origin);await page.locator('[data-select="wellness"]').click();await page.waitForFunction(()=>document.querySelector('#series-stack').textContent.includes('Descrição de teste'));
+ assert.equal((await page.locator('.series-title').allTextContents()).at(-1),'Pilates de Aparelhos');const card=page.locator('.series-card').filter({has:page.locator('.series-title',{hasText:'Pilates de Aparelhos'})});assert.match(await card.textContent(),/Amanda/);
+ const saved=(await(await fetch(origin+'/api/catalog')).json()).data;assert.deepEqual(saved.sessions,previous.sessions);assert.deepEqual(saved.modalities.filter(m=>m.area!=='wellness'),previous.modalities);assert.deepEqual(importWellness(saved).data,saved);
+ await page.goto(origin+'/admin');await page.getByRole('button',{name:'WELLNESS',exact:true}).click();await page.locator('.divide-y>div').filter({hasText:'Aulas Individuais'}).getByRole('button',{name:'Editar',exact:true}).click();await dialog.getByRole('switch').click();await dialog.getByRole('button',{name:'Guardar',exact:true}).click();await dialog.waitFor({state:'hidden'});
+ await page.getByRole('tab',{name:'Contactos'}).click();await page.getByLabel('Telefone',{exact:true}).fill('');await page.getByRole('button',{name:'Guardar contactos',exact:true}).click();await page.getByText('Alterações guardadas',{exact:true}).first().waitFor();
+ await page.goto(origin);await page.locator('[data-select="wellness"]').click();await page.waitForFunction(()=>document.querySelectorAll('.series-card').length===6);assert.equal(await page.locator('.series-card .series-detail').count(),0);assert.equal(await page.locator('#horarios').isVisible(),false);
+ await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
+ console.log('Wellness: sete serviços sob marcação, sem botões nos cards nem horário, descrição/ordem/profissional editados no admin, publicação, Fitness/Dance preservados e mobile sem erros.');
+}finally{
+ if(browser)await browser.close();const stopped=new Promise(r=>server.once('exit',r));server.kill();await stopped;database().close();
+ assert(resolve(directory).startsWith(resolve(tmpdir())+sep)&&directory.includes('studio601-wellness-'));rmSync(directory,{recursive:true,force:true});
+}

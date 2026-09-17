@@ -1,0 +1,8 @@
+import { isAdmin,readCatalog,saveCatalog } from '@/lib/server';
+import { validOrigin } from '@/lib/auth';
+import { BodyError,jsonBody,reply } from '@/lib/http';
+import { schema } from '@/lib/catalog';
+export const dynamic='force-dynamic';
+export const runtime='nodejs';
+export async function GET(req:Request){try{const admin=new URL(req.url).searchParams.has('admin');if(admin&&!await isAdmin())return reply({error:'Acesso restrito.'},403);const result=await readCatalog();if(!admin){result.data.modalities=result.data.modalities.filter(x=>x.published);result.data.professionals=result.data.professionals.filter(x=>x.published);result.data.sessions=result.data.sessions.filter(x=>x.published&&result.data.modalities.some(m=>m.id===x.modalityId)&&(!x.professionalId||result.data.professionals.some(p=>p.id===x.professionalId)));}return reply(result);}catch{return reply({error:'Não foi possível carregar os dados. Tenta novamente.'},503);}}
+export async function PUT(req:Request){try{if(!await isAdmin())return reply({error:'Acesso restrito.'},403);if(!validOrigin(req))return reply({error:'Origem inválida.'},403);const body=await jsonBody(req,1000000);if(!Number.isSafeInteger(body.version)||body.version<0)return reply({error:'Versão inválida.'},400);const parsed=schema.safeParse(body.data);if(!parsed.success)return reply({error:parsed.error.issues[0].message},400);if(!saveCatalog(body.version,parsed.data))return reply({error:'Os dados foram alterados noutra janela. Recarrega antes de voltar a editar.'},409);return reply({data:parsed.data,version:body.version+1});}catch(e){return reply({error:e instanceof BodyError?e.message:'Não foi possível guardar. Os dados anteriores foram preservados.'},e instanceof BodyError?e.status:500);}}
