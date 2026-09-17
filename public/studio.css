@@ -309,7 +309,7 @@ footer.footer-copyright{margin-top:0;padding:16px 4.7% calc(16px + env(safe-area
 .team-portrait .managed-photo{z-index:-2;object-position:center top}
 
 /* White fade supports dark names and transparent area logos over photographs. */
-#equipa .team-portrait:after{inset:0;background:linear-gradient(to top,#fff 0%,#fff 22%,#fffffff2 35%,#ffffff00 75%);pointer-events:none}
+#equipa .team-portrait:after{inset:0;background:linear-gradient(to top,#fff 0%,#fff 14%,#fffffff2 28%,#ffffff00 55%);pointer-events:none}
 #equipa .portrait-info{bottom:70px;color:#151515}
 #equipa .portrait-info strong{margin:0 0 8px;overflow-wrap:anywhere}
 #equipa .portrait-role{color:#444}
