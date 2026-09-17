@@ -1,8 +1,14 @@
-// The overview keeps each area's next class, even when another area starts sooner.
+// Keep each area's classes and order the overview by the first displayed start.
 export function getHeroScheduleGroups(catalog, area, now = new Date()) {
+ const firstStart = state => Math.min(...[...state.current, ...state.next]
+  .map(({ date, session }) => Date.parse(date + 'T' + session.time + ':00Z')));
  return (area === 'all' ? ['fitness', 'dance'] : [area])
   .map(area => ({ area, ...getHeroSchedule(catalog, area, now) }))
-  .filter(state => state.hasSchedule);
+  .filter(state => state.hasSchedule)
+  .sort((a, b) => {
+   const first = firstStart(a), second = firstStart(b);
+   return first === second ? 0 : first - second;
+  });
 }
 
 // Calendar comparisons use the published wall-clock times in Portugal.

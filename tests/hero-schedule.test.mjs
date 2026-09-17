@@ -7,7 +7,7 @@ const dance={id:'dance',name:'Ballet',area:'dance',mode:'schedule',published:tru
 const session=(changes={})=>({id:'session',modalityId:'fitness',published:true,recurrence:'weekly',weekday:4,time:'18:00',duration:50,startDate:'',endDate:'',date:'',cancelledDates:[],...changes});
 const catalog=sessions=>({modalities:[fitness,dance,{id:'wellness',name:'Pilates Clínico',area:'wellness',mode:'appointment',published:true}],sessions});
 
-test('overview shows Fitness before Dance with independently selected current and next classes',()=>{
+test('overview prioritizes an ongoing class and retains independently selected next classes',()=>{
  const data=catalog([session(),session({id:'fitness-next',time:'20:00'}),session({id:'dance-next',modalityId:'dance',time:'19:00',duration:null})]);
  const now=new Date('2026-09-17T17:15:00Z');
  const groups=getHeroScheduleGroups(data,'all',now);
@@ -18,6 +18,19 @@ test('overview shows Fitness before Dance with independently selected current an
  for(const area of ['fitness','dance'])assert.deepEqual(getHeroScheduleGroups(data,area,now).map(group=>group.area),[area]);
  assert.deepEqual(getHeroScheduleGroups(data,'wellness',now),[]);
  assert.deepEqual(getHeroScheduleGroups({modalities:[],sessions:[]},'all',now),[]);
+});
+
+test('overview starts with the earliest area regardless of category, comparing dates as well as hours',()=>{
+ const now=new Date('2026-09-17T16:00:00Z');
+ const order=sessions=>getHeroScheduleGroups(catalog(sessions),'all',now).map(group=>group.area);
+ assert.deepEqual(order([session({time:'20:00'}),session({modalityId:'dance',time:'18:00'})]),['dance','fitness']);
+ assert.deepEqual(order([session({time:'18:00'}),session({modalityId:'dance',time:'20:00'})]),['fitness','dance']);
+ assert.deepEqual(order([session({weekday:5,time:'08:00'}),session({modalityId:'dance',time:'20:00'})]),['dance','fitness']);
+ assert.deepEqual(order([session({recurrence:'once',date:'2026-09-16'}),session({modalityId:'dance',time:'20:00'})]),['dance','fitness']);
+ assert.equal(getHeroScheduleGroups(catalog([session(),session({modalityId:'dance'})]),'all',now).length,2);
+ const ongoing=getHeroScheduleGroups(catalog([session({time:'18:00'}),session({modalityId:'dance',time:'17:30',duration:60})]),'all',new Date('2026-09-17T17:15:00Z'));
+ assert.deepEqual(ongoing.map(group=>group.area),['dance','fitness']);
+ assert.deepEqual(getHeroScheduleGroups(catalog([]),'all',now).map(group=>group.area),['fitness','dance']);
 });
 
 test('Portugal time identifies current classes and excludes them from the next start',()=>{
