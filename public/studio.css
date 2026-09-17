@@ -308,6 +308,13 @@ footer.footer-copyright{margin-top:0;padding:16px 4.7% calc(16px + env(safe-area
 /* Keep team portraits behind the existing gradient and member information. */
 .team-portrait .managed-photo{z-index:-2;object-position:center top}
 
+/* Area logos replace category text and stay clear of names and roles. */
+#equipa .portrait-info{bottom:76px}
+#equipa .portrait-info strong{margin:0 0 8px;overflow-wrap:anywhere}
+.portrait-areas{position:absolute;right:20px;bottom:20px;display:flex;align-items:center;gap:8px;min-height:40px;padding:5px 8px;background:#fff;border-radius:5px}
+.portrait-areas .brand-logo{width:64px}
+.portrait-areas .brand-logo[data-logo=dance]{width:30px}
+
 /* Photo feedback follows the same short, quiet section motion. */
 @media(prefers-reduced-motion:no-preference){
  .area-photo,.series-visual .managed-photo{transition:transform .8s cubic-bezier(.16,1,.3,1)}
