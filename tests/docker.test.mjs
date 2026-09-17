@@ -14,7 +14,11 @@ test('Docker: standalone, HTTPS origin, authentication, uploads and volume persi
   const base = 'http://127.0.0.1:30602';
   const env = { ...process.env, APP_ORIGIN: origin, PORT: '30602', BIND_ADDRESS: '127.0.0.1', IMAGE_TAG: 'local' };
   const temporary = mkdtempSync(join(tmpdir(), 'studio601-docker-'));
-  let files = [];
+  // Never attach test containers to the production ingress network.
+  const networkOverride = join(temporary, 'network.json');
+  writeFileSync(networkOverride, JSON.stringify({ networks: { web: { external: false, name: project + '-ingress' } } }));
+  const baseFiles = ['-f', 'compose.yaml', '-f', networkOverride];
+  let files = [...baseFiles];
   function compose(args, input) {
     const result = spawnSync('docker', ['compose', '-p', project, ...files, ...args], { env, input, encoding: 'utf8', timeout: 600000, maxBuffer: 10 * 1024 * 1024 });
     assert.equal(result.status, 0, result.stderr || result.error?.message);
@@ -77,7 +81,7 @@ test('Docker: standalone, HTTPS origin, authentication, uploads and volume persi
     compose(['down']);
     const override = join(temporary, 'restore.json');
     writeFileSync(override, JSON.stringify({ volumes: { 'studio601-data': { name: project + '-restored' } } }));
-    files = ['-f', 'compose.yaml', '-f', override];
+    files = [...baseFiles, '-f', override];
     compose(['run', '--rm', '--no-deps', '--user', '0', '--cap-add', 'CHOWN', '--cap-add', 'FOWNER', '--cap-add', 'DAC_OVERRIDE', '--entrypoint', 'sh',
       '-v', `${temporary}:/backup:ro`, 'website', '-ec', 'test ! -e /data/studio601.sqlite; tar -xzf /backup/snapshot.tar.gz -C /data; chown -R 1000:1000 /data; chmod -R go-rwx /data']);
     compose(['up', '-d', '--build']);
@@ -92,7 +96,7 @@ test('Docker: standalone, HTTPS origin, authentication, uploads and volume persi
   } finally {
     // Only this random test project and its synthetic data are removed.
     compose(['down', '--volumes', '--remove-orphans']);
-    if (files.length) { files = []; compose(['down', '--volumes', '--remove-orphans']); }
+    if (files.length > baseFiles.length) { files = [...baseFiles]; compose(['down', '--volumes', '--remove-orphans']); }
     assert.ok(resolve(temporary).startsWith(resolve(tmpdir()) + sep) && temporary.includes('studio601-docker-'));
     rmSync(temporary, { recursive: true, force: true });
   }

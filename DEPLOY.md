@@ -1,7 +1,38 @@
 # Studio 601 — Docker na VPS
 
 Domínio: **https://studio601.fabiodrbarros.cloud**. Origem do código: **https://github.com/fabiodrbarros/studio_601.git**.
-O deploy na VPS é executado pelo proprietário. A configuração do proxy/Tunnel ainda não foi identificada; seguir apenas o ramo correspondente à instalação existente. Nenhum acesso à VPS ou alteração Cloudflare foi efetuado nesta preparação.
+O deploy na VPS é executado pelo proprietário. Confirmado pelo inventário fornecido: o container `cloudflared` está ligado à rede Docker externa `web`. O Compose liga apenas o Studio 601 a essa rede, com alias `studio601-web`; não cria nem modifica o Tunnel ou outros containers.
+
+## Arranque na VPS confirmada
+
+Na pasta atual `/home/fabiodrb/studio601`:
+
+```sh
+git pull --ff-only
+docker compose config --quiet
+docker compose up -d --build
+docker compose ps
+curl --fail http://127.0.0.1:30601/api/health
+docker compose exec website node scripts/admin-account.mjs create
+```
+
+O último comando pede o utilizador, a password (mínimo 12 caracteres) e a confirmação, sem mostrar a password. A conta fica no volume persistente; não guardar credenciais no `.env` ou no Git. Executar apenas uma vez para cada conta. Para mudar a password de uma conta existente:
+
+```sh
+docker compose exec website node scripts/admin-account.mjs password
+```
+
+Não é necessário criar `compose.override.yaml` para a rede: já está no `compose.yaml`. Se criaste o override exatamente como indicado anteriormente (redes `default`/`web` e alias `studio601-web`), é compatível mas redundante; não apagar overrides com outras configurações.
+
+Na Cloudflare, no Tunnel existente, adicionar o hostname `studio601.fabiodrbarros.cloud`, tipo **HTTP**, URL **studio601-web:3000**. Esta configuração pública ainda precisa de ser feita pelo proprietário; o `git pull` não altera a Cloudflare. Se o Tunnel for gerido por ficheiro, usar a regra equivalente no ficheiro existente sem alterar os restantes hostnames.
+
+Verificar depois:
+
+```sh
+curl --fail https://studio601.fabiodrbarros.cloud/api/health
+```
+
+Abrir `/admin` pelo domínio e entrar com a conta criada. A base e as fotografias locais não são enviadas pelo Git; importar os dados existentes antes de criar uma nova conta se pretenderes preservar as contas locais. A importação completa de uma base substitui também as contas dessa instalação.
 
 ## Tecnologia e dados
 
@@ -140,22 +171,16 @@ Validar com `cloudflared tunnel ingress validate` usando o ficheiro efetivamente
 
 ### B. Tunnel ou proxy existente dentro de Docker
 
-`127.0.0.1` dentro do proxy refere-se ao próprio container. Identificar a rede já usada por esse proxy (`docker inspect NOME_DO_PROXY --format '{{json .NetworkSettings.Networks}}'`) e adicionar **apenas website** à mesma rede. Criar `compose.override.yaml` neste projeto:
+`127.0.0.1` dentro do proxy refere-se ao próprio container. Na VPS confirmada, `cloudflared` já usa `web` e o Compose já liga `website` com alias `studio601-web`: usar `http://studio601-web:3000` no Tunnel. Não é preciso override. Apenas para outra infraestrutura que use uma rede diferente, identificar a rede (`docker inspect NOME_DO_PROXY --format '{{json .NetworkSettings.Networks}}'`) e criar `compose.override.yaml` para substituir o nome externo:
 
 ```yaml
-services:
-  website:
-    networks:
-      default: {}
-      ingress:
-        aliases: [studio601-web]
 networks:
-  ingress:
+  web:
     external: true
     name: NOME_REAL_DA_REDE_EXISTENTE
 ```
 
-`docker compose up -d --build` passa a carregar esse override automaticamente. Upstream no Tunnel/proxy: `http://studio601-web:3000`. A publicação no host continua limitada ao loopback; não é necessário expô-la à Internet. Configurar o novo host no gestor existente (incluindo TLS se for proxy reverso), sem alterar containers ou regras dos outros sites. Guardar uma cópia privada do override juntamente com o `.env` para recuperação.
+`docker compose up -d --build` carrega esse override automaticamente, quando existir. Upstream no Tunnel/proxy: `http://studio601-web:3000`. A publicação no host continua limitada ao loopback; não é necessário expô-la à Internet. Configurar o novo host no gestor existente (incluindo TLS se for proxy reverso), sem alterar containers ou regras dos outros sites. Guardar uma cópia privada de eventuais overrides juntamente com o `.env` para recuperação.
 
 ### C. DNS para IP público + proxy reverso no host
 

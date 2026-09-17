@@ -17,6 +17,11 @@ services:
       - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-30601}:3000"
     volumes:
       - studio601-data:/data
+    networks:
+      default: {}
+      web:
+        aliases:
+          - studio601-web
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -34,3 +39,7 @@ services:
         max-file: "3"
 volumes:
   studio601-data:
+networks:
+  web:
+    external: true
+    name: web
