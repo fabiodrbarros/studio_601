@@ -46,6 +46,7 @@ footer{background:#111111;color:#ffffff}.footer-word{color:var(--selected)}.deta
 .brand-logo[data-logo=dance]{--logo-ratio:1158/1196;--image-width:108.2902%;--image-height:104.8495%;--image-left:-3.1088%;--image-top:-1.6722%;width:79px}
 .area-brand{display:flex;align-items:center;width:180px;min-height:82px;max-width:calc(100% - 28px)}
 .area-brand .brand-logo{width:min(180px,100%);flex-shrink:1}
+.area-brand .brand-logo[data-logo=studio]{width:min(88px,100%)}
 .area-brand .brand-logo[data-logo=dance]{width:72px}
 .area-card{display:flex;flex-direction:column;align-items:stretch;gap:0}
 .area-card .card-caption{position:absolute;bottom:18px;right:20px;top:auto;left:auto;z-index:1;width:auto;margin:0;pointer-events:none}
@@ -68,7 +69,9 @@ body[data-area=fitness] .team-portrait:nth-child(3n){background:#263b00}
   .brand-link .brand-logo[data-logo=dance]{width:60px}
   .area-brand{max-width:100%;min-height:64px}
   .area-brand .brand-logo{width:min(142px,100%)}
+  .area-brand .brand-logo[data-logo=studio]{width:min(72px,100%)}
   .area-brand .brand-logo[data-logo=dance]{width:58px}
+  .portrait-areas .brand-logo[data-logo=studio]{width:34px}
 }
 
 @media(max-width:640px){.area-card{display:flex;flex-direction:column;align-items:stretch;gap:0}}
@@ -317,7 +320,9 @@ footer.footer-copyright{margin-top:0;padding:16px 4.7% calc(16px + env(safe-area
 #equipa .team-portrait .asset-label>span{color:#555}
 .portrait-areas{position:absolute;right:20px;bottom:30px;display:flex;align-items:center;gap:8px;min-height:32px}
 .portrait-areas .brand-logo{width:64px}
+.portrait-areas .brand-logo[data-logo=studio]{width:40px}
 .portrait-areas .brand-logo[data-logo=dance]{width:30px}
+@media(max-width:640px){.portrait-areas .brand-logo[data-logo=studio]{width:34px}}
 
 /* Photo feedback follows the same short, quiet section motion. */
 @media(prefers-reduced-motion:no-preference){
